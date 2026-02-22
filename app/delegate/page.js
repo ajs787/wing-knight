@@ -7,42 +7,66 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, Key, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
+const FAKE_FRIENDS = {
+  HACKHERS26: {
+    id: 'fake-friend-1',
+    name: 'Priya Patel',
+    netid: 'pp123',
+    age: 20,
+    year: 'Sophomore',
+    major: 'Computer Science',
+    personality_answer: 'Night owl 🦉',
+    photo: '/friend1.jpg',
+  },
+  RUTGERSWICS: {
+    id: 'fake-friend-2',
+    name: 'Maya Chen',
+    netid: 'mc456',
+    age: 21,
+    year: 'Junior',
+    major: 'Information Technology',
+    personality_answer: 'Ambivert ⚖️',
+    photo: '/friend2.jpg',
+  },
+};
+
 export default function DelegatePage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(null);
+  const [error, setError] = useState('');
 
-  async function handleRedeem(e) {
+  function handleRedeem(e) {
     e.preventDefault();
+    setError('');
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) return;
 
     setLoading(true);
-    try {
-      const res = await fetch('/api/invite/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: trimmed }),
-      });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast({ title: 'Could not redeem code', description: data.error, variant: 'destructive' });
-        return;
-      }
-
-      setSuccess(data.owner);
-      toast({ title: 'You\'re now a wingman!', description: `You can now swipe for ${data.owner?.name || 'your friend'}.` });
-    } finally {
+    const friend = FAKE_FRIENDS[trimmed];
+    if (!friend) {
+      setError('Invalid invite code. Please check and try again.');
       setLoading(false);
+      return;
     }
+
+    // Save to localStorage
+    try {
+      const existing = JSON.parse(localStorage.getItem('wingru_delegations') || '[]');
+      const alreadyAdded = existing.some((f) => f.id === friend.id);
+      if (!alreadyAdded) {
+        existing.push(friend);
+        localStorage.setItem('wingru_delegations', JSON.stringify(existing));
+      }
+    } catch {}
+
+    setSuccess(friend);
+    setLoading(false);
   }
 
   if (success) {
@@ -50,15 +74,13 @@ export default function DelegatePage() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-white px-6">
         <div className="w-full max-w-sm text-center animate-fade-in">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-green-500" />
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-rose-100">
+              <img src={success.photo} alt={success.name} className="w-full h-full object-cover" />
             </div>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 mb-2">You&apos;re in!</h1>
           <p className="text-slate-500 mb-1">You&apos;re now swiping for</p>
-          <p className="text-xl font-bold text-rose-500 mb-6">
-            {success.name || `@${success.netid}`}
-          </p>
+          <p className="text-xl font-bold text-rose-500 mb-6">{success.name}</p>
           <p className="text-sm text-slate-400 mb-8">
             Go to the feed and select their name to start finding them a match.
           </p>
@@ -101,11 +123,18 @@ export default function DelegatePage() {
                 id="code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="ABC12345"
-                maxLength={10}
+                placeholder="HACKHERS26"
+                maxLength={12}
                 className="h-12 text-center text-xl font-mono tracking-widest"
               />
             </div>
+
+            {error && (
+              <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl border border-red-100">
+                {error}
+              </div>
+            )}
+
             <Button type="submit" size="lg" className="w-full" disabled={loading || code.trim().length < 6}>
               {loading ? 'Redeeming...' : 'Redeem code'}
             </Button>

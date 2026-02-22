@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { useDropzone } from 'react-dropzone';
 import { ArrowLeft, ArrowRight, Upload, X, GripVertical, Check } from 'lucide-react';
-import Image from 'next/image';
 
 const TOTAL_STEPS = 5;
 
@@ -36,7 +34,7 @@ const SAMPLE_PROMPTS = [
   "I'm secretly really good at...",
 ];
 
-function PhotoSlot({ index, photo, onUpload, onRemove, isDragging }) {
+function PhotoSlot({ index, photo, onUpload, onRemove }) {
   const onDrop = useCallback((files) => {
     if (files[0]) onUpload(index, files[0]);
   }, [index, onUpload]);
@@ -58,11 +56,10 @@ function PhotoSlot({ index, photo, onUpload, onRemove, isDragging }) {
       {!photo && <input {...getInputProps()} />}
       {photo ? (
         <>
-          <Image
-            src={photo.publicUrl || photo.preview}
+          <img
+            src={photo.dataUrl}
             alt={`Photo ${index + 1}`}
-            fill
-            className="object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           <button
@@ -94,7 +91,6 @@ function PhotoSlot({ index, photo, onUpload, onRemove, isDragging }) {
 export default function OnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const supabase = createClient();
 
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -112,7 +108,6 @@ export default function OnboardingPage() {
 
   // Step 3 — Photos (5 slots)
   const [photos, setPhotos] = useState(Array(5).fill(null));
-  const [uploading, setUploading] = useState(Array(5).fill(false));
 
   // Step 4 — Prompts (at least 2)
   const [promptSelections, setPromptSelections] = useState([
@@ -120,41 +115,32 @@ export default function OnboardingPage() {
     { prompt: '', answer: '' },
   ]);
 
-  // Step 5 — Review
-
+  // Load saved data from localStorage on mount
   useEffect(() => {
-    // Pre-fill from existing profile
-    async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const res = await fetch('/api/profile');
-      if (!res.ok) return;
-      const { profile } = await res.json();
-      if (profile) {
-        if (profile.name) setName(profile.name);
-        if (profile.age) setAge(String(profile.age));
-        if (profile.year) setYear(profile.year);
-        if (profile.major) setMajor(profile.major);
-        if (profile.gender) setGender(profile.gender);
-        if (profile.looking_for) setLookingFor(profile.looking_for);
-        if (profile.personality_answer) setPersonalityAnswer(profile.personality_answer);
-        if (profile.photos?.length) {
-          const slots = Array(5).fill(null);
-          profile.photos.forEach((p) => {
-            if (p.position >= 0 && p.position < 5) {
-              slots[p.position] = {
-                id: p.id,
-                publicUrl: supabase.storage.from('profile-photos').getPublicUrl(p.storage_path).data.publicUrl,
-                storage_path: p.storage_path,
-                fromServer: true,
-              };
-            }
-          });
-          setPhotos(slots);
+    try {
+      const savedProfile = localStorage.getItem('wingru_profile');
+      if (savedProfile) {
+        const p = JSON.parse(savedProfile);
+        if (p.name) setName(p.name);
+        if (p.age) setAge(String(p.age));
+        if (p.year) setYear(p.year);
+        if (p.major) setMajor(p.major);
+        if (p.gender) setGender(p.gender);
+        if (p.looking_for) setLookingFor(p.looking_for);
+        if (p.personality_answer) setPersonalityAnswer(p.personality_answer);
+        if (p.prompts) setPromptSelections(p.prompts);
+      }
+
+      const savedPhotos = localStorage.getItem('wingru_photos');
+      if (savedPhotos) {
+        const parsed = JSON.parse(savedPhotos);
+        if (Array.isArray(parsed)) {
+          setPhotos(parsed.map((d) => d ? { dataUrl: d } : null));
         }
       }
+    } catch {
+      // ignore parse errors
     }
-    loadProfile();
   }, []);
 
   function canProceedStep1() {
@@ -171,72 +157,56 @@ export default function OnboardingPage() {
     return filled.length >= 2;
   }
 
-  async function handlePhotoUpload(index, file) {
-    const u = [...uploading]; u[index] = true; setUploading(u);
-    try {
-      const preview = URL.createObjectURL(file);
-      const slots = [...photos];
-      slots[index] = { preview, file, uploading: true };
-      setPhotos(slots);
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('position', String(index));
-
-      const res = await fetch('/api/photos', { method: 'POST', body: formData });
-      if (!res.ok) {
-        const { error } = await res.json();
-        toast({ title: 'Upload failed', description: error, variant: 'destructive' });
-        const s2 = [...photos]; s2[index] = null; setPhotos(s2);
-        return;
-      }
-      const { photo } = await res.json();
-      const s3 = [...photos];
-      s3[index] = { id: photo.id, publicUrl: photo.publicUrl, storage_path: photo.storage_path, fromServer: true };
-      setPhotos(s3);
-    } finally {
-      const u2 = [...uploading]; u2[index] = false; setUploading(u2);
-    }
-  }
-
-  async function handlePhotoRemove(index) {
-    const photo = photos[index];
-    if (photo?.id) {
-      await fetch(`/api/photos?id=${photo.id}`, { method: 'DELETE' });
-    }
-    const slots = [...photos]; slots[index] = null; setPhotos(slots);
-  }
-
-  async function handleSaveProfile() {
-    setSaving(true);
-    try {
-      const res = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          age: parseInt(age),
-          year,
-          major: major.trim(),
-          gender,
-          looking_for: lookingFor,
-          personality_answer: personalityAnswer.trim(),
-        }),
+  function handlePhotoUpload(index, file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      setPhotos((prev) => {
+        const next = [...prev];
+        next[index] = { dataUrl };
+        // Persist to localStorage
+        try {
+          localStorage.setItem('wingru_photos', JSON.stringify(next.map((p) => p ? p.dataUrl : null)));
+        } catch {
+          // storage full or unavailable
+        }
+        return next;
       });
-      if (!res.ok) {
-        const { error } = await res.json();
-        toast({ title: 'Error saving profile', description: String(error?.formErrors?.[0] || error), variant: 'destructive' });
-        return false;
-      }
-      return true;
-    } finally {
-      setSaving(false);
-    }
+    };
+    reader.readAsDataURL(file);
   }
 
-  async function handleFinish() {
-    const ok = await handleSaveProfile();
-    if (!ok) return;
+  function handlePhotoRemove(index) {
+    setPhotos((prev) => {
+      const next = [...prev];
+      next[index] = null;
+      try {
+        localStorage.setItem('wingru_photos', JSON.stringify(next.map((p) => p ? p.dataUrl : null)));
+      } catch {}
+      return next;
+    });
+  }
+
+  function handleSaveProfile() {
+    const profile = {
+      name: name.trim(),
+      age: parseInt(age),
+      year,
+      major: major.trim(),
+      gender,
+      looking_for: lookingFor,
+      personality_answer: personalityAnswer.trim(),
+      prompts: promptSelections,
+    };
+    try {
+      localStorage.setItem('wingru_profile', JSON.stringify(profile));
+    } catch {}
+    return true;
+  }
+
+  function handleFinish() {
+    setSaving(true);
+    handleSaveProfile();
     toast({ title: 'Profile complete!', description: 'Welcome to WingRu.' });
     router.push('/feed');
   }
@@ -274,9 +244,7 @@ export default function OnboardingPage() {
               <div>
                 <Label>Year at Rutgers</Label>
                 <Select value={year} onValueChange={setYear}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select year" /></SelectTrigger>
                   <SelectContent>
                     {YEARS.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                   </SelectContent>
@@ -290,16 +258,8 @@ export default function OnboardingPage() {
                 <Label>Gender</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {GENDERS.map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => setGender(g)}
-                      className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                        gender === g
-                          ? 'bg-rose-500 text-white border-rose-500'
-                          : 'border-slate-200 text-slate-600 hover:border-rose-300'
-                      }`}
-                    >
+                    <button key={g} type="button" onClick={() => setGender(g)}
+                      className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${gender === g ? 'bg-rose-500 text-white border-rose-500' : 'border-slate-200 text-slate-600 hover:border-rose-300'}`}>
                       {g}
                     </button>
                   ))}
@@ -309,16 +269,8 @@ export default function OnboardingPage() {
                 <Label>Looking for</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {LOOKING_FOR.map((l) => (
-                    <button
-                      key={l}
-                      type="button"
-                      onClick={() => setLookingFor(l)}
-                      className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
-                        lookingFor === l
-                          ? 'bg-rose-500 text-white border-rose-500'
-                          : 'border-slate-200 text-slate-600 hover:border-rose-300'
-                      }`}
-                    >
+                    <button key={l} type="button" onClick={() => setLookingFor(l)}
+                      className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${lookingFor === l ? 'bg-rose-500 text-white border-rose-500' : 'border-slate-200 text-slate-600 hover:border-rose-300'}`}>
                       {l}
                     </button>
                   ))}
@@ -336,16 +288,8 @@ export default function OnboardingPage() {
             </div>
             <div className="space-y-3">
               {PERSONALITY_OPTIONS.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setPersonalityAnswer(opt)}
-                  className={`w-full text-left px-5 py-4 rounded-2xl border-2 text-sm font-medium transition-all ${
-                    personalityAnswer === opt
-                      ? 'border-rose-500 bg-rose-50 text-rose-700'
-                      : 'border-slate-100 text-slate-700 hover:border-slate-200 bg-white'
-                  }`}
-                >
+                <button key={opt} type="button" onClick={() => setPersonalityAnswer(opt)}
+                  className={`w-full text-left px-5 py-4 rounded-2xl border-2 text-sm font-medium transition-all ${personalityAnswer === opt ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-slate-100 text-slate-700 hover:border-slate-200 bg-white'}`}>
                   <div className="flex items-center justify-between">
                     {opt}
                     {personalityAnswer === opt && <Check className="w-4 h-4 text-rose-500" />}
@@ -364,19 +308,10 @@ export default function OnboardingPage() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               {photos.map((photo, i) => (
-                <PhotoSlot
-                  key={i}
-                  index={i}
-                  photo={photo}
-                  onUpload={handlePhotoUpload}
-                  onRemove={handlePhotoRemove}
-                  isDragging={false}
-                />
+                <PhotoSlot key={i} index={i} photo={photo} onUpload={handlePhotoUpload} onRemove={handlePhotoRemove} />
               ))}
             </div>
-            <p className="text-xs text-slate-400 text-center">
-              {photos.filter(Boolean).length}/5 photos added
-            </p>
+            <p className="text-xs text-slate-400 text-center">{photos.filter(Boolean).length}/5 photos added</p>
           </div>
         )}
 
@@ -390,41 +325,26 @@ export default function OnboardingPage() {
               <div key={i} className="space-y-2 p-4 rounded-2xl border border-slate-100 bg-slate-50">
                 <Label>Prompt {i + 1}</Label>
                 <Select value={ps.prompt} onValueChange={(v) => {
-                  const next = [...promptSelections];
-                  next[i] = { ...next[i], prompt: v };
-                  setPromptSelections(next);
+                  const next = [...promptSelections]; next[i] = { ...next[i], prompt: v }; setPromptSelections(next);
                 }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pick a prompt..." />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Pick a prompt..." /></SelectTrigger>
                   <SelectContent>
-                    {SAMPLE_PROMPTS.map((p) => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
-                    ))}
+                    {SAMPLE_PROMPTS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 {ps.prompt && (
-                  <textarea
-                    value={ps.answer}
+                  <textarea value={ps.answer}
                     onChange={(e) => {
-                      const next = [...promptSelections];
-                      next[i] = { ...next[i], answer: e.target.value };
-                      setPromptSelections(next);
+                      const next = [...promptSelections]; next[i] = { ...next[i], answer: e.target.value }; setPromptSelections(next);
                     }}
-                    placeholder="Your answer..."
-                    maxLength={300}
-                    rows={3}
-                    className="w-full rounded-xl border border-input bg-white px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
+                    placeholder="Your answer..." maxLength={300} rows={3}
+                    className="w-full rounded-xl border border-input bg-white px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
                 )}
               </div>
             ))}
             {promptSelections.length < 3 && (
-              <button
-                type="button"
-                onClick={() => setPromptSelections([...promptSelections, { prompt: '', answer: '' }])}
-                className="text-sm text-rose-500 hover:underline"
-              >
+              <button type="button" onClick={() => setPromptSelections([...promptSelections, { prompt: '', answer: '' }])}
+                className="text-sm text-rose-500 hover:underline">
                 + Add another prompt
               </button>
             )}
@@ -469,12 +389,7 @@ export default function OnboardingPage() {
 
       {/* Navigation */}
       <div className="px-6 py-6 max-w-lg mx-auto w-full flex items-center justify-between border-t border-slate-100">
-        <Button
-          variant="ghost"
-          onClick={() => setStep((s) => Math.max(1, s - 1))}
-          disabled={step === 1}
-          className="gap-2"
-        >
+        <Button variant="ghost" onClick={() => setStep((s) => Math.max(1, s - 1))} disabled={step === 1} className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
 
