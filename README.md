@@ -1,2 +1,2 @@
-# wing-knight
+# wingru
 revolutionizing rutgers dating
