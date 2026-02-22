@@ -265,6 +265,17 @@ function MatchCard({ match }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MyMatchesPage() {
+  const [isAjs, setIsAjs] = useState(false);
+
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('wingru_current_user') || '{}');
+      setIsAjs(u.netid === 'ajs787');
+    } catch {}
+  }, []);
+
+  const activeMatches = isAjs ? MY_MATCHES : [];
+
   return (
     <div className="min-h-screen wing-bg">
       <div className="border-b border-stroke px-s4 py-s4 sticky top-0 bg-bg/80 backdrop-blur-sm z-10">
@@ -291,12 +302,27 @@ export default function MyMatchesPage() {
       </div>
 
       <div className="max-w-lg mx-auto px-6 py-8 space-y-6 animate-fade-in">
-        <p className="text-sm text-muted2">
-          {MY_MATCHES.length} validated connection{MY_MATCHES.length !== 1 ? 's' : ''} · Gemini AI scoring active
-        </p>
-        {MY_MATCHES.map((match) => (
-          <MatchCard key={match.id} match={match} />
-        ))}
+        {activeMatches.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="rounded-2xl bg-panel border border-stroke shadow-card p-10 text-center">
+              <Heart className="w-10 h-10 text-muted2 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-text mb-2">no validated connections yet.</h2>
+              <p className="text-sm text-muted mb-6 leading-relaxed">keep curating. the ai is learning your trust patterns.</p>
+              <Link href="/feed">
+                <Button className="w-full">start curating</Button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-muted2">
+              {activeMatches.length} validated connection{activeMatches.length !== 1 ? 's' : ''} · Gemini AI scoring active
+            </p>
+            {activeMatches.map((match) => (
+              <MatchCard key={match.id} match={match} />
+            ))}
+          </>
+        )}
       </div>
     </div>
   );

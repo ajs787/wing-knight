@@ -20,10 +20,12 @@ export default function FeedPage() {
   const [friends, setFriends] = useState([]);
   const [myProfile, setMyProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAjs, setIsAjs] = useState(false);
 
   useEffect(() => {
     try {
       const netid = getCurrentNetid();
+      setIsAjs(netid === 'ajs787');
       const delegations = JSON.parse(localStorage.getItem(`wingru_delegations_${netid}`) || '[]');
       setFriends(delegations);
       const profile = JSON.parse(localStorage.getItem(`wingru_profile_${netid}`) || 'null');
@@ -72,7 +74,8 @@ export default function FeedPage() {
           </div>
         )}
 
-        {/* Validated Connections */}
+        {/* Validated Connections — ajs787 only */}
+        {isAjs && (
         <section className="mb-s6">
           <div className="flex items-center gap-2 mb-s3">
             <Sparkles className="w-4 h-4 text-pink" />
@@ -98,6 +101,7 @@ export default function FeedPage() {
             </div>
           </Link>
         </section>
+        )}
 
         {/* Curate with intelligence */}
         <section className="mb-s6">

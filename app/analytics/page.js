@@ -17,6 +17,12 @@ import nextDynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Sparkles, Brain, Users, Activity, Shield, TrendingUp, Zap } from 'lucide-react';
+import { quickScore } from '@/lib/gemini';
+
+// Compute match scores once at module level so the timeline matches card values exactly
+const _audrey = { name: 'Audrey' };
+const KEVIN_SCORE = quickScore(_audrey, { name: 'Kevin' });
+const FRED_SCORE  = quickScore(_audrey, { name: 'Fred' });
 
 // Dynamic import: TrustGraph uses canvas + window, must be client-only
 const TrustGraph = nextDynamic(() => import('@/components/TrustGraph'), {
@@ -36,13 +42,13 @@ function CompatibilityTimeline() {
   }, []);
 
   const data = [
-    { day: 'Feb 15', score: 0,  kevin: 0,  fred: 0  },
-    { day: 'Feb 16', score: 0,  kevin: 0,  fred: 0  },
-    { day: 'Feb 17', score: 0,  kevin: 0,  fred: 0  },
-    { day: 'Feb 18', score: 0,  kevin: 0,  fred: 0  },
-    { day: 'Feb 19', score: 78, kevin: 85, fred: 0  },
-    { day: 'Feb 20', score: 83, kevin: 85, fred: 72 },
-    { day: 'Feb 21', score: 85, kevin: 85, fred: 72 },
+    { day: 'Feb 15', kevin: 0,           fred: 0          },
+    { day: 'Feb 16', kevin: 0,           fred: 0          },
+    { day: 'Feb 17', kevin: 0,           fred: 0          },
+    { day: 'Feb 18', kevin: 0,           fred: 0          },
+    { day: 'Feb 19', kevin: KEVIN_SCORE, fred: 0          },
+    { day: 'Feb 20', kevin: KEVIN_SCORE, fred: FRED_SCORE  },
+    { day: 'Feb 21', kevin: KEVIN_SCORE, fred: FRED_SCORE  },
   ];
 
   if (!Charts) {
@@ -199,6 +205,15 @@ const LEGEND = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
+  const [isAjs, setIsAjs] = useState(false);
+
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('wingru_current_user') || '{}');
+      setIsAjs(u.netid === 'ajs787');
+    } catch {}
+  }, []);
+
   return (
     <div className="min-h-screen bg-bg text-text">
 
@@ -226,7 +241,19 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      {!isAjs ? (
+        <div className="flex flex-col items-center justify-center py-32 px-6">
+          <div className="rounded-2xl bg-panel border border-stroke shadow-card p-10 text-center max-w-sm mx-auto">
+            <Sparkles className="w-10 h-10 text-muted2 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-text mb-2">no analytics yet.</h2>
+            <p className="text-sm text-muted mb-6 leading-relaxed">build your profile and start curating to generate compatibility insights.</p>
+            <Link href="/feed">
+              <Button className="w-full">start curating</Button>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
 
         {/* Metric tiles */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -334,7 +361,8 @@ export default function AnalyticsPage() {
           ))}
         </div>
 
-      </div>
+        </div>
+      )}
     </div>
   );
 }

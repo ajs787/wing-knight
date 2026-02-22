@@ -57,7 +57,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-stroke bg-bg/80 backdrop-blur-sm relative z-10">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-glow animate-pulseGlow">
             <Sparkles className="w-3.5 h-3.5 text-white" />
           </div>
           <span className="text-lg font-bold tracking-tight text-text">WingRU</span>
@@ -87,7 +87,7 @@ export default function LandingPage() {
           <h1 className="text-5xl sm:text-7xl font-black tracking-tight text-text leading-[1.05] mb-6">
             Love, Curated by
             <br />
-            <span className="text-text">
+            <span style={{ background: 'linear-gradient(to right, #F472B6 0%, #F4F4F5 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Intelligence.
             </span>
           </h1>
@@ -99,7 +99,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-center mb-16">
             <Link href="/login">
-              <Button size="lg" className="gap-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 border-0 shadow-lg shadow-rose-500/25 text-white font-semibold px-8">
+              <Button size="lg" className="gap-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 border-0 animate-pulseGlow text-white font-semibold px-8">
                 Launch App <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
