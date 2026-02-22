@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import Link from 'next/link';
-import { ArrowLeft, X, Heart, Tag } from 'lucide-react';
+import { ArrowLeft, X, Heart, Tag, MessageCircle } from 'lucide-react';
 
 const TAGS = ['Green flag 💚', 'Funny 😂', 'Sus 🤨', 'Cute 🥺', 'Smart 🧠', 'No reason needed ✨'];
 
@@ -101,12 +101,14 @@ function ProfileCard({ candidate, onPass, onLike }) {
   const [showTags, setShowTags] = useState(false);
   const [selectedTag, setSelectedTag] = useState('');
   const [swipeDir, setSwipeDir] = useState(null); // 'like' | 'pass' | null
+  const [showPassNote, setShowPassNote] = useState(false);
+  const [noteText, setNoteText] = useState('');
 
   function handlePassPress() {
     setSwipeDir('pass');
     setTimeout(() => {
       setSwipeDir(null);
-      onPass();
+      setShowPassNote(true);
     }, 500);
   }
 
@@ -120,8 +122,15 @@ function ProfileCard({ candidate, onPass, onLike }) {
 
   function confirmLike() {
     setShowTags(false);
-    onLike(selectedTag);
+    onLike(selectedTag, noteText);
     setSelectedTag('');
+    setNoteText('');
+  }
+
+  function confirmPass() {
+    setShowPassNote(false);
+    onPass(noteText);
+    setNoteText('');
   }
 
   return (
@@ -165,7 +174,7 @@ function ProfileCard({ candidate, onPass, onLike }) {
       {/* Scrollable card content */}
       <div className="flex-1 overflow-y-auto space-y-3 pb-2">
         {/* Photo 1 + name overlay */}
-        <div className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-lg">
+        <div className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-card">
           <img
             src={candidate.photos[0]}
             alt={candidate.name}
@@ -186,15 +195,15 @@ function ProfileCard({ candidate, onPass, onLike }) {
         </div>
 
         {/* Prompt 1 */}
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4">
-          <p className="text-rose-400 text-xs font-semibold uppercase tracking-wide mb-1">
+        <div className="rounded-2xl bg-panel border border-stroke px-s4 py-s3">
+          <p className="text-pink text-xs font-semibold uppercase tracking-wide mb-1">
             {candidate.prompts[0].q}
           </p>
-          <p className="text-slate-800 text-base leading-snug">{candidate.prompts[0].a}</p>
+          <p className="text-text text-base leading-snug">{candidate.prompts[0].a}</p>
         </div>
 
         {/* Photo 2 */}
-        <div className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-lg">
+        <div className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-card">
           <img
             src={candidate.photos[1]}
             alt={candidate.name}
@@ -203,18 +212,18 @@ function ProfileCard({ candidate, onPass, onLike }) {
         </div>
 
         {/* Prompt 2 */}
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4">
-          <p className="text-rose-400 text-xs font-semibold uppercase tracking-wide mb-1">
+        <div className="rounded-2xl bg-panel border border-stroke px-s4 py-s3">
+          <p className="text-pink text-xs font-semibold uppercase tracking-wide mb-1">
             {candidate.prompts[1].q}
           </p>
-          <p className="text-slate-800 text-base leading-snug">{candidate.prompts[1].a}</p>
+          <p className="text-text text-base leading-snug">{candidate.prompts[1].a}</p>
         </div>
       </div>
 
       {/* Tag picker (shown when heart pressed) */}
       {showTags && (
-        <div className="mt-3 p-4 rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <p className="text-sm text-slate-500 mb-3 font-medium flex items-center gap-2">
+        <div className="rounded-2xl bg-panel border border-stroke p-s3 shadow-card mt-s3">
+          <p className="text-muted text-sm mb-3 font-medium flex items-center gap-2">
             <Tag className="w-4 h-4" /> Add a tag (optional)
           </p>
           <div className="flex flex-wrap gap-2 mb-4">
@@ -225,14 +234,22 @@ function ProfileCard({ candidate, onPass, onLike }) {
                 onClick={() => setSelectedTag(t === selectedTag ? '' : t)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                   selectedTag === t
-                    ? 'bg-rose-500 text-white border-rose-500'
-                    : 'border-slate-200 text-slate-600 hover:border-rose-200'
+                    ? 'bg-pink/15 text-pink border-pink/30'
+                    : 'border-stroke text-muted hover:border-stroke2'
                 }`}
               >
                 {t}
               </button>
             ))}
           </div>
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder="Add a note for your friend… (optional)"
+            maxLength={200}
+            rows={2}
+            className="w-full rounded-2xl bg-panel2 border border-stroke px-s3 py-s2 text-text text-sm placeholder:text-muted2 resize-none focus:outline-none mb-3"
+          />
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowTags(false)}>
               Cancel
@@ -245,22 +262,48 @@ function ProfileCard({ candidate, onPass, onLike }) {
         </div>
       )}
 
+      {/* Pass note panel */}
+      {showPassNote && (
+        <div className="rounded-2xl bg-panel border border-stroke p-s3 shadow-card mt-s3">
+          <p className="text-muted text-sm mb-3 font-medium flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" /> Why pass? (optional note for {candidate.name.split(' ')[0]}&apos;s friend)
+          </p>
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder={`What didn't feel right about ${candidate.name}?`}
+            maxLength={200}
+            rows={2}
+            className="w-full rounded-2xl bg-panel2 border border-stroke px-s3 py-s2 text-text text-sm placeholder:text-muted2 resize-none focus:outline-none mb-3"
+          />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1" onClick={confirmPass}>
+              Skip
+            </Button>
+            <Button variant="soft" size="sm" className="flex-1 gap-2" onClick={confirmPass}>
+              <X className="w-4 h-4" />
+              Pass{noteText.trim() ? ' — noted' : ''}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Action buttons */}
-      {!showTags && (
+      {!showTags && !showPassNote && (
         <div className="flex items-center justify-center gap-6 mt-4 pb-2">
           <button
             onClick={handlePassPress}
             disabled={!!swipeDir}
-            className="w-16 h-16 rounded-full border-2 border-slate-200 flex items-center justify-center hover:border-red-300 hover:bg-red-50 transition-all group shadow-sm disabled:opacity-50"
+            className="w-16 h-16 rounded-2xl border border-stroke bg-panel flex items-center justify-center hover:bg-panel2 hover:border-stroke2 transition-all group shadow-card disabled:opacity-50"
           >
-            <X className="w-7 h-7 text-slate-400 group-hover:text-red-400" />
+            <X className="w-7 h-7 text-muted2 group-hover:text-text" />
           </button>
           <button
             onClick={handleLikePress}
             disabled={!!swipeDir}
-            className="w-16 h-16 rounded-full border-2 border-rose-200 flex items-center justify-center hover:border-rose-400 hover:bg-rose-50 transition-all group shadow-sm disabled:opacity-50"
+            className="w-16 h-16 rounded-2xl border border-pink/30 bg-pink/5 flex items-center justify-center hover:bg-pink/10 hover:border-pink/50 transition-all group shadow-card disabled:opacity-50"
           >
-            <Heart className="w-7 h-7 text-rose-400 group-hover:text-rose-500" />
+            <Heart className="w-7 h-7 text-pink group-hover:text-pink" />
           </button>
         </div>
       )}
@@ -288,11 +331,11 @@ export default function OwnerFeedPage() {
     } catch {}
   }, [ownerId]);
 
-  function handlePass() {
+  function handlePass(note) {
     setCurrentIdx((i) => i + 1);
   }
 
-  function handleLike(tag) {
+  function handleLike(tag, note) {
     const isLast = currentIdx === candidates.length - 1;
     if (isLast) {
       toast({
@@ -308,19 +351,20 @@ export default function OwnerFeedPage() {
 
   if (candidates.length === 0) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
-        <p className="text-slate-500">No candidates found for this friend.</p>
-        <Link href="/feed" className="mt-4">
-          <Button variant="outline">Back to feed</Button>
+      <div className="min-h-screen wing-bg flex flex-col items-center justify-center px-s4">
+        <p className="text-muted text-lg font-semibold mb-2">no candidates in this feed.</p>
+        <p className="text-muted2 text-sm mb-s4">the ai wingman is waiting for more profiles.</p>
+        <Link href="/feed">
+          <Button variant="outline">back to command center</Button>
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen wing-bg flex flex-col">
       {/* Header */}
-      <div className="border-b border-slate-100 px-6 py-4 flex-shrink-0">
+      <div className="border-b border-stroke px-s4 py-s3 flex-shrink-0 bg-bg/80 backdrop-blur-sm">
         <div className="max-w-sm mx-auto flex items-center justify-between">
           <Link href="/feed">
             <Button variant="ghost" size="icon">
@@ -328,14 +372,14 @@ export default function OwnerFeedPage() {
             </Button>
           </Link>
           <div className="flex flex-col items-center gap-1">
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Swiping for</p>
+            <p className="text-xs font-semibold text-muted2 uppercase tracking-widest">curating for</p>
             <div className="flex items-center gap-2">
               {ownerProfile?.photo && (
                 <div className="w-6 h-6 rounded-full overflow-hidden">
                   <img src={ownerProfile.photo} alt={ownerProfile.name} className="w-full h-full object-cover" />
                 </div>
               )}
-              <p className="text-sm font-bold text-slate-800">{ownerProfile?.name || '...'}</p>
+              <p className="text-sm font-semibold text-text">{ownerProfile?.name || '...'}</p>
             </div>
           </div>
           <div className="w-10" />
@@ -343,16 +387,16 @@ export default function OwnerFeedPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col overflow-hidden px-6 pt-4 max-w-sm mx-auto w-full">
+      <div className="flex-1 flex flex-col overflow-hidden px-s4 pt-s3 max-w-sm mx-auto w-full">
         {isExhausted ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
-            <div className="text-5xl mb-4">🎉</div>
-            <h3 className="text-xl font-bold text-slate-800 mb-2">You&apos;re all caught up!</h3>
-            <p className="text-slate-500 text-sm mb-6">
-              You&apos;ve swiped through everyone for {ownerProfile?.name || 'your friend'}.
+            <div className="text-5xl mb-4">✦</div>
+            <h3 className="text-xl font-bold text-text mb-2">feed complete.</h3>
+            <p className="text-muted text-sm mb-s5">
+              all candidates evaluated for {ownerProfile?.name || 'your friend'}.
             </p>
             <Link href="/feed">
-              <Button className="w-full">Back to feed</Button>
+              <Button className="w-full">back to command center</Button>
             </Link>
           </div>
         ) : (

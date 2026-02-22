@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail } from 'lucide-react';
 
@@ -79,25 +78,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white px-6">
+    <div className="min-h-screen wing-bg flex flex-col items-center justify-center px-s4">
       <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-200">
+        <div className="flex justify-center mb-s5">
+          <div className="w-14 h-14 rounded-2xl bg-accent shadow-glow flex items-center justify-center">
             <Mail className="w-6 h-6 text-white" />
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-slate-900 text-center mb-2">
+        <h1 className="text-4xl font-semibold tracking-tight text-text text-center mb-s2">
           Sign in to WingRu
         </h1>
-        <p className="text-slate-500 text-center mb-8 text-sm">
+        <p className="text-base text-muted text-center mb-s5">
           Enter any email to get started
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
+            <Label htmlFor="email" className="text-sm font-medium text-muted2 mb-s1 block">
+              Email
+            </Label>
+            <input
               id="email"
               type="email"
               placeholder="you@example.com"
@@ -105,12 +106,12 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="off"
-              className="h-12"
+              className="w-full rounded-2xl bg-panel border border-stroke px-s4 py-s3 text-text placeholder:text-muted2 shadow-ring focus:outline-none focus:wing-focus h-12"
             />
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl border border-red-100">
+            <div className="rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-s3 py-s2">
               {error}
             </div>
           )}

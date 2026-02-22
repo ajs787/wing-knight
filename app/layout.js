@@ -9,17 +9,15 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: 'WingRu — Your friends swipe for you.',
-  description: 'The Rutgers dating app where your friends swipe on your behalf.',
-  icons: {
-    icon: '/favicon.ico',
-  },
+  title: 'WingRU — AI-Powered Compatibility Engine',
+  description: 'Trust-validated social matching powered by Gemini AI.',
+  icons: { icon: '/favicon.ico' },
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-white font-sans">
+    <html lang="en" className={`${inter.variable} dark`}>
+      <body className="min-h-screen bg-bg font-sans antialiased">
         {children}
         <Toaster />
       </body>

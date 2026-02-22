@@ -4,24 +4,31 @@ import { cva } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-2xl text-sm font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:wing-focus disabled:pointer-events-none disabled:opacity-40",
   {
     variants: {
       variant: {
-        default: "btn-gradient text-white hover:opacity-90 shadow-sm",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        soft: "bg-rose-50 text-rose-600 hover:bg-rose-100",
+        default:
+          "bg-accent text-bg shadow-glow hover:shadow-glowStrong hover:brightness-105 hover:scale-[1.02] active:scale-[0.99]",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "bg-panel border border-stroke text-text shadow-ring hover:bg-panel2 hover:border-stroke2 hover:shadow-card hover:scale-[1.01] active:scale-[0.99]",
+        secondary:
+          "bg-panel2 text-text border border-stroke hover:bg-panel hover:border-stroke2",
+        ghost:
+          "text-muted hover:text-text rounded-xl",
+        link:
+          "text-pink underline-offset-4 hover:underline",
+        soft:
+          "bg-pink/10 text-pink border border-pink/20 hover:bg-pink/15 hover:border-pink/30",
       },
       size: {
-        default: "h-11 px-5 py-2",
-        sm: "h-9 rounded-lg px-3",
-        lg: "h-12 rounded-xl px-8 text-base",
-        xl: "h-14 rounded-2xl px-10 text-lg",
-        icon: "h-10 w-10",
+        default: "h-11 px-s4 py-s2",
+        sm:      "h-9 rounded-xl px-s3 text-xs",
+        lg:      "h-12 rounded-2xl px-s5 text-base",
+        xl:      "h-14 rounded-3xl px-s6 text-lg",
+        icon:    "h-10 w-10 rounded-xl",
       },
     },
     defaultVariants: {
